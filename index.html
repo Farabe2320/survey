@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relationship &amp; Preference Survey</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1d2330;--mute:#5d6676;--line:#d9dde4;--acc:#1f5fbf;--bad:#b3261e;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#14171d;--card:#1c212a;--ink:#e8ebf0;--mute:#9aa3b2;--line:#323a47;--acc:#6ea2f5;--bad:#f2867f;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding:20px 14px 90px}
+h1{font-size:1.5rem;margin:.2em 0}
+h2{font-size:1.2rem;margin:0 0 .3em}
+.sub{color:var(--mute);margin:0 0 14px}
+.bar{height:6px;background:var(--line);border-radius:3px;margin:12px 0 18px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--acc);width:0;transition:width .25s}
+.q{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px;margin:0 0 12px}
+.q.err{border-color:var(--bad)}
+.q label.t,.q .t{display:block;font-weight:600;margin-bottom:8px}
+.hint{color:var(--mute);font-size:.88rem;font-weight:400}
+textarea,input[type=text]{width:100%;font:inherit;color:inherit;background:transparent;border:1px solid var(--line);border-radius:6px;padding:9px}
+textarea{min-height:84px;resize:vertical}
+.sc{display:flex;gap:6px}
+.sc label{flex:1}
+.sc input{position:absolute;opacity:0}
+.sc span{display:block;text-align:center;padding:10px 0;border:1px solid var(--line);border-radius:6px;cursor:pointer}
+.sc input:checked+span{background:var(--acc);border-color:var(--acc);color:#fff}
+.sc input:focus-visible+span{outline:2px solid var(--acc);outline-offset:2px}
+.ends{display:flex;justify-content:space-between;color:var(--mute);font-size:.8rem;margin-top:3px}
+.row{padding:10px 0;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}
+.row .rl{margin-bottom:6px}
+.opts label{display:block;padding:8px 10px;border:1px solid var(--line);border-radius:6px;margin-bottom:6px;cursor:pointer}
+.opts input{margin-right:8px}
+.nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:10px 14px}
+.nav div{max-width:720px;margin:0 auto;display:flex;gap:10px;justify-content:space-between;align-items:center}
+button{font:inherit;padding:10px 18px;border-radius:6px;border:1px solid var(--acc);background:var(--acc);color:#fff;cursor:pointer}
+button.ghost{background:transparent;color:var(--acc)}
+button:disabled{opacity:.5}
+.msg{color:var(--bad);font-size:.9rem}
+.ok{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:18px}
+pre{white-space:pre-wrap;word-break:break-word;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px;max-height:240px;overflow:auto;font-size:.8rem}
+.hp{position:absolute;left:-9999px}
+</style>
+</head>
+<body>
+<main>
+<h1>Relationship &amp; Preference Survey</h1>
+<p class="sub" id="sub"></p>
+<div class="bar"><i id="prog"></i></div>
+<div id="page"></div>
+</main>
+<div class="nav"><div>
+<button class="ghost" id="back">Back</button>
+<span class="msg" id="msg"></span>
+<button id="next">Next</button>
+</div></div>
+
+<script>
+/* ===== SETUP: paste your free Web3Forms access key here (web3forms.com -> enter your email -> key arrives by email) ===== */
+var ACCESS_KEY = "46408ad2-48c3-49eb-b6a0-89f093e2fab9";
+var SURVEY_TITLE = "Survey answers from Meghna";
+
+var TIPI = ["Extraverted, enthusiastic","Critical, quarrelsome","Dependable, self-disciplined","Anxious, easily upset","Open to new experiences, complex","Reserved, quiet","Sympathetic, warm","Disorganized, careless","Calm, emotionally stable","Conventional, uncreative"];
+var ECR = ["I worry that partners do not care about me as much as I care about them","I get nervous when a partner gets too close","I need a lot of reassurance that I am loved","I prefer not to show a partner how I feel deep down","I worry about being abandoned","I feel more comfortable when I do not depend on partners"];
+var WANTS = ["Intelligence","Deep conversation","Humor","Ambition","Emotional openness","Stability","Excitement","Kindness","Physical attraction","Same religion or belief","Similar background and culture","Family approval","Financial security","Someone who needs me","Someone who challenges me"];
+var TRAITS = ["Funny","Ambitious","Emotionally open","Reliable and stable","Exciting or spontaneous","Kind and caring","Similar to me in values","Similar to me in religion or belief","Similar to me in background and culture","Needed my care or support","Challenged me to grow","Made me feel secure","Made me feel admired","Intelligent","Curious and loved learning","Interesting to talk to for hours","Attentive to me and my feelings"];
+var PARTNERS = [["Russel","Russel",0],["Salman","Salman",0],["Farabe","Farabe",0],["Mark 1","Mark 1 (the earlier Mark, atheist)",0],["Mark 2","Mark 2 (the current Mark, Christian)",1]];
+
+function S(id,label,lo,hi){return {t:"scale",id:id,label:label,lo:lo||"Not at all",hi:hi||"Completely"}}
+function T(id,label){return {t:"text",id:id,label:label}}
+function G(id,label,rows,lo,hi){return {t:"grid",id:id,label:label,rows:rows,lo:lo||"Not at all",hi:hi||"Completely"}}
+function C(id,label,opts){return {t:"choice",id:id,label:label,opts:opts}}
+
+var PAGES = [];
+PAGES.push({title:"About you",sub:"Rate each statement from 1 to 7. Every question needs an answer so the results are complete.",qs:[
+ G("Personality","Personality: \"I see myself as...\"",TIPI,"Disagree strongly","Agree strongly"),
+ G("Closeness","Closeness in relationships",ECR,"Disagree","Agree"),
+ G("Wants in a partner","What you want in a partner",WANTS,"Not important","Essential"),
+ T("Top 3 deal-breakers","Your top 3 deal-breakers"),
+ T("Sapiosexual meaning","What does \"sapiosexual\" mean to you? What does a smart person look like, concretely (degrees, knowledge, curiosity, way of arguing, depth of conversation)?"),
+ T("Family approval","How much does your family's approval matter in your choices?")
+]});
+
+PARTNERS.forEach(function(p){
+ var n=p[0],cur=p[2],q=[];
+ q.push(T(n+" - How we met","How did you meet, and who made the first move?"));
+ q.push(T(n+" - First attraction","What first attracted you to him?"));
+ q.push(S(n+" - Physical attraction at start","Physical attraction at the start"));
+ q.push(S(n+" - Emotional excitement at start","Emotional excitement or curiosity at the start"));
+ q.push(S(n+" - Intellectual attraction at start","Intellectual attraction at the start"));
+ q.push(G(n+" - Who he was","Who he was",TRAITS));
+ q.push(T(n+" - What I got","What did you get from him that you needed?"));
+ q.push(T(n+" - What was missing","What was missing?"));
+ q.push(S(n+" - Felt like myself","How much did you feel like yourself with him?"));
+ q.push(S(n+" - Supported in hard times","How supported did you feel in hard times?"));
+ q.push(T(n+" - Arguments","How often did you argue, and about what?"));
+ q.push(T(n+" - Belief and background","How did differences (or sameness) in belief and family background affect things?"));
+ q.push(S(n+" - Family influence","How much did your family's opinion influence this relationship?"));
+ q.push(C(n+" - Physical vs emotional order","Did physical closeness come before or after emotional connection?",["Physical closeness came first","Emotional connection came first","Both together","There was no physical closeness","Prefer not to answer"]));
+ q.push(S(n+" - Physical closeness changed feelings","Did physical closeness change how you felt about him? (1 = made me feel less for him, 4 = no change, 7 = made me feel more for him)","Less","More"));
+ q.push(T(n+" - Physical closeness details","In your own words, what was physical closeness like with him, and how did it affect the relationship? (If you prefer not to answer, type: prefer not to answer)"));
+ if(!cur){
+  q.push(T(n+" - Who ended it","Who ended it, and what was the main reason?"));
+  q.push(T(n+" - When first doubted","When did you first feel it might not last?"));
+  q.push(S(n+" - First month feeling","How did you feel in the FIRST month?","Very low","Very high"));
+  q.push(S(n+" - Last month feeling","How did you feel in the LAST month?","Very low","Very high"));
+  q.push(S(n+" - Date again","Would you date him again in different circumstances?"));
+ }else{
+  q.push(T(n+" - What is different","What is different about him from the others?"));
+  q.push(T(n+" - Worries","What worries you?"));
+  q.push(T(n+" - Faith and family","How does his Christian faith fit with your family and your future?"));
+ }
+ q.push(T(n+" - One word","One word for how he made you feel"));
+ q.push(T(n+" - Keep and never repeat","One thing you would keep from this relationship, and one thing you would never repeat"));
+ q.push(S(n+" - Overall satisfaction","Overall, how satisfied were you in this relationship?","Very unsatisfied","Very satisfied"));
+ PAGES.push({title:"About "+p[1],sub:"Answer for this person only. Scale: 1 = not at all, 7 = completely.",qs:q});
+});
+
+PAGES.push({title:"Comparing everyone",sub:"Last section.",qs:[
+ T("Final - Ranking","Rank all five by overall satisfaction (best first): Russel, Salman, Farabe, Mark 1, Mark 2"),
+ T("Final - Closest to what I want","Which one felt closest to what you really want, and why?"),
+ T("Final - Wanted but never got","Which traits did you say matter but never really got?"),
+ T("Final - Said no but chose anyway","Which traits did you say do not matter, but kept choosing anyway?"),
+ T("Final - Repeating pattern","Which pattern repeats for you: excitement, being needed, family approval, intellect, or something else?")
+]});
+
+var A = {}, cur = 0, DRAFT = "survey_draft_v1";
+try { var d = localStorage.getItem(DRAFT); if (d) A = JSON.parse(d) || {}; } catch (e) {}
+function save(){ try { localStorage.setItem(DRAFT, JSON.stringify(A)); } catch (e) {} }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]}); }
+function ids(q){ return q.t==="grid" ? q.rows.map(function(r){return q.id+" ["+r+"]"}) : [q.id]; }
+
+function scaleHTML(name,lo,hi){
+ var h='<div class="sc" role="radiogroup">';
+ for(var i=1;i<=7;i++) h+='<label><input type="radio" name="'+esc(name)+'" value="'+i+'"'+(A[name]==String(i)?" checked":"")+'><span>'+i+'</span></label>';
+ return h+'</div><div class="ends"><span>'+esc(lo)+'</span><span>'+esc(hi)+'</span></div>';
+}
+function render(){
+ var pg=PAGES[cur], h='<h2>'+esc(pg.title)+'</h2><p class="sub">'+esc(pg.sub)+'</p>';
+ pg.qs.forEach(function(q,qi){
+  h+='<div class="q" data-q="'+qi+'">';
+  if(q.t==="scale") h+='<div class="t">'+esc(q.label)+'</div>'+scaleHTML(q.id,q.lo,q.hi);
+  else if(q.t==="text") h+='<label class="t" for="f'+qi+'">'+esc(q.label)+'</label><textarea id="f'+qi+'" data-id="'+esc(q.id)+'">'+esc(A[q.id]||"")+'</textarea>';
+  else if(q.t==="choice"){ h+='<div class="t">'+esc(q.label)+'</div><div class="opts">'; q.opts.forEach(function(o){ h+='<label><input type="radio" name="'+esc(q.id)+'" value="'+esc(o)+'"'+(A[q.id]===o?" checked":"")+'>'+esc(o)+'</label>'; }); h+='</div>'; }
+  else { h+='<div class="t">'+esc(q.label)+' <span class="hint">('+esc(q.lo)+' = 1, '+esc(q.hi)+' = 7)</span></div>'; q.rows.forEach(function(r){ h+='<div class="row"><div class="rl">'+esc(r)+'</div>'+scaleHTML(q.id+" ["+r+"]",q.lo,q.hi).replace(/<div class="ends">.*<\/div>$/,"")+'</div>'; }); }
+  h+='</div>';
+ });
+ if(cur===PAGES.length-1) h+='<input class="hp" tabindex="-1" autocomplete="off" id="botcheck">';
+ document.getElementById("page").innerHTML=h;
+ document.getElementById("back").style.visibility=cur===0?"hidden":"visible";
+ document.getElementById("next").textContent=cur===PAGES.length-1?"Submit":"Next";
+ document.getElementById("prog").style.width=((cur+1)/PAGES.length*100)+"%";
+ document.getElementById("sub").textContent="Part "+(cur+1)+" of "+PAGES.length;
+ document.getElementById("msg").textContent="";
+ window.scrollTo(0,0);
+}
+document.addEventListener("input",function(e){
+ var t=e.target;
+ if(t.matches&&t.matches("textarea[data-id]")) A[t.getAttribute("data-id")]=t.value;
+ else if(t.type==="radio") A[t.name]=t.value;
+ else return;
+ save();
+ var box=t.closest&&t.closest(".q"); if(box) box.classList.remove("err");
+});
+function missing(){
+ var pg=PAGES[cur], first=null, n=0;
+ pg.qs.forEach(function(q,qi){
+  var bad=ids(q).some(function(id){return !A[id]||!String(A[id]).trim()});
+  var box=document.querySelector('[data-q="'+qi+'"]');
+  if(bad){ n++; box.classList.add("err"); if(!first) first=box; } else box.classList.remove("err");
+ });
+ if(first) first.scrollIntoView({behavior:"smooth",block:"center"});
+ return n;
+}
+function buildText(){
+ var out=[];
+ PAGES.forEach(function(pg){
+  out.push("\n=== "+pg.title+" ===");
+  pg.qs.forEach(function(q){ ids(q).forEach(function(id){ out.push(id+": "+(A[id]||"")); }); });
+ });
+ return out.join("\n");
+}
+document.getElementById("back").onclick=function(){ if(cur>0){cur--;render();} };
+document.getElementById("next").onclick=function(){
+ var m=document.getElementById("msg");
+ var n=missing();
+ if(n){ m.textContent=n+" unanswered. If you prefer not to answer a written question, type: prefer not to answer"; return; }
+ if(cur<PAGES.length-1){ cur++; render(); return; }
+ submit();
+};
+function submit(){
+ var btn=document.getElementById("next"), m=document.getElementById("msg");
+ var bc=document.getElementById("botcheck"); if(bc&&bc.value) return;
+ btn.disabled=true; m.textContent="Sending...";
+ var text=buildText();
+ if(ACCESS_KEY.indexOf("PASTE_")===0){ done(false,text); return; }
+ fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},
+  body:JSON.stringify({access_key:ACCESS_KEY,subject:SURVEY_TITLE,from_name:"Survey",message:text})})
+ .then(function(r){return r.json()})
+ .then(function(j){ done(!!j.success,text); })
+ .catch(function(){ done(false,text); });
+}
+function done(ok,text){
+ document.querySelector(".nav").style.display="none";
+ document.getElementById("prog").style.width="100%";
+ var h='<div class="ok">';
+ if(ok){ h+='<h2>Thank you. Your answers have been sent.</h2><p>You can close this page.</p>'; try{localStorage.removeItem(DRAFT)}catch(e){} }
+ else h+='<h2>Sending did not work</h2><p>Nothing is lost. Tap <b>Copy answers</b> and send the text to him on WhatsApp or email.</p><p><button id="cp">Copy answers</button> <button class="ghost" id="dl">Download file</button></p><pre id="out"></pre>';
+ document.getElementById("page").innerHTML=h+'</div>';
+ if(!ok){
+  document.getElementById("out").textContent=text;
+  document.getElementById("cp").onclick=function(){ var b=this; (navigator.clipboard?navigator.clipboard.writeText(text):Promise.reject()).then(function(){b.textContent="Copied"}).catch(function(){var r=document.createRange();r.selectNodeContents(document.getElementById("out"));var s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent="Select and copy the text below";}); };
+  document.getElementById("dl").onclick=function(){ var a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([text],{type:"text/plain"})); a.download="answers.txt"; a.click(); };
+ }
+}
+render();
+</script>
+</body>
+</html>
